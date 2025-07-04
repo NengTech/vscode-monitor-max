@@ -1,0 +1,12 @@
+{
+  "root": true,
+  "extends": [
+    "next/core-web-vitals",
+    "@next/eslint-config-next"
+  ],
+  "rules": {
+    "@typescript-eslint/naming-convention": "off",
+    "@typescript-eslint/semi": "warn",
+    "react/display-name": "off"
+  }
+}

@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitor Ultra 图标生成器</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .container {
+            text-align: center;
+            max-width: 800px;
+        }
+        
+        .icon-canvas {
+            background: #2d2d2d;
+            border-radius: 12px;
+            padding: 30px;
+            margin: 30px 0;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+        
+        .download-btn {
+            background: linear-gradient(135deg, #007ACC, #0099FF);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0, 153, 255, 0.4);
+        }
+        
+        .preview {
+            margin: 20px 0;
+            padding: 20px;
+            background: #333;
+            border-radius: 8px;
+            display: inline-block;
+        }
+        
+        h1 {
+            color: #007ACC;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #888;
+            font-size: 1.2em;
+            margin-bottom: 30px;
+        }
+        
+        .size-label {
+            color: #0099FF;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Monitor Ultra 图标生成器</h1>
+        <p class="subtitle">为你的 VS Code 扩展生成专业的科技感图标</p>
+        
+        <div class="icon-canvas">
+            <canvas id="iconCanvas" width="512" height="512"></canvas>
+            <div class="preview">
+                <div class="size-label">512x512 高清图标</div>
+                <p>科技感蓝色基调 • GPU监控主题 • 现代设计</p>
+            </div>
+        </div>
+        
+        <button class="download-btn" onclick="downloadIcon()">
+            下载图标 (PNG)
+        </button>
+        
+        <button class="download-btn" onclick="generateVariants()">
+            生成多尺寸版本
+        </button>
+    </div>
+
+    <script>
+        function drawIcon() {
+            const canvas = document.getElementById('iconCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // 清空画布
+            ctx.clearRect(0, 0, 512, 512);
+            
+            // 设置背景渐变
+            const bgGradient = ctx.createLinearGradient(0, 0, 512, 512);
+            bgGradient.addColorStop(0, '#1a1a2e');
+            bgGradient.addColorStop(0.5, '#16213e');
+            bgGradient.addColorStop(1, '#0f3460');
+            
+            // 绘制背景
+            ctx.fillStyle = bgGradient;
+            ctx.fillRect(0, 0, 512, 512);
+            
+            // 绘制圆角
+            ctx.beginPath();
+            ctx.roundRect(0, 0, 512, 512, 80);
+            ctx.clip();
+            
+            // 重新绘制背景（应用圆角）
+            ctx.fillStyle = bgGradient;
+            ctx.fillRect(0, 0, 512, 512);
+            
+            // 绘制中心监控屏幕
+            const centerX = 256;
+            const centerY = 256;
+            const screenWidth = 280;
+            const screenHeight = 200;
+            
+            // 屏幕外框
+            ctx.strokeStyle = '#007ACC';
+            ctx.lineWidth = 6;
+            ctx.strokeRect(centerX - screenWidth/2, centerY - screenHeight/2 - 20, screenWidth, screenHeight);
+            
+            // 屏幕内容 - 模拟监控数据
+            ctx.fillStyle = '#001122';
+            ctx.fillRect(centerX - screenWidth/2 + 6, centerY - screenHeight/2 - 14, screenWidth - 12, screenHeight - 12);
+            
+            // 绘制监控数据线条
+            const dataLines = [
+                { y: centerY - 60, color: '#00ff88', width: 200 },
+                { y: centerY - 30, color: '#0099ff', width: 150 },
+                { y: centerY + 0, color: '#ff6b6b', width: 180 },
+                { y: centerY + 30, color: '#ffd93d', width: 160 },
+                { y: centerY + 60, color: '#a855f7', width: 140 }
+            ];
+            
+            dataLines.forEach(line => {
+                ctx.strokeStyle = line.color;
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.moveTo(centerX - line.width/2, line.y);
+                ctx.lineTo(centerX + line.width/2, line.y);
+                ctx.stroke();
+                
+                // 添加发光效果
+                ctx.shadowColor = line.color;
+                ctx.shadowBlur = 8;
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+            });
+            
+            // 绘制GPU芯片图标
+            const chipSize = 60;
+            const chipX = centerX - 120;
+            const chipY = centerY - 120;
+            
+            // 芯片主体
+            ctx.fillStyle = '#007ACC';
+            ctx.fillRect(chipX, chipY, chipSize, chipSize);
+            
+            // 芯片内部网格
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            for (let i = 1; i < 4; i++) {
+                ctx.beginPath();
+                ctx.moveTo(chipX + i * chipSize/4, chipY);
+                ctx.lineTo(chipX + i * chipSize/4, chipY + chipSize);
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.moveTo(chipX, chipY + i * chipSize/4);
+                ctx.lineTo(chipX + chipSize, chipY + i * chipSize/4);
+                ctx.stroke();
+            }
+            
+            // 芯片引脚
+            ctx.fillStyle = '#00ff88';
+            for (let i = 0; i < 8; i++) {
+                // 左侧引脚
+                ctx.fillRect(chipX - 8, chipY + i * 8 + 4, 8, 4);
+                // 右侧引脚
+                ctx.fillRect(chipX + chipSize, chipY + i * 8 + 4, 8, 4);
+                // 上侧引脚
+                ctx.fillRect(chipX + i * 8 + 4, chipY - 8, 4, 8);
+                // 下侧引脚
+                ctx.fillRect(chipX + i * 8 + 4, chipY + chipSize, 4, 8);
+            }
+            
+            // 绘制内存条图标
+            const memX = centerX + 80;
+            const memY = centerY - 120;
+            const memWidth = 80;
+            const memHeight = 20;
+            
+            ctx.fillStyle = '#0099ff';
+            ctx.fillRect(memX, memY, memWidth, memHeight);
+            
+            // 内存条刻痕
+            ctx.fillStyle = '#001122';
+            ctx.fillRect(memX + memWidth/2 - 2, memY - 5, 4, 10);
+            
+            // 内存条引脚
+            ctx.fillStyle = '#ffd93d';
+            for (let i = 0; i < 10; i++) {
+                ctx.fillRect(memX + i * 8, memY + memHeight, 4, 8);
+            }
+            
+            // 绘制温度计图标
+            const tempX = centerX + 100;
+            const tempY = centerY + 40;
+            
+            ctx.strokeStyle = '#ff6b6b';
+            ctx.lineWidth = 8;
+            ctx.beginPath();
+            ctx.moveTo(tempX, tempY);
+            ctx.lineTo(tempX, tempY + 60);
+            ctx.stroke();
+            
+            ctx.fillStyle = '#ff6b6b';
+            ctx.beginPath();
+            ctx.arc(tempX, tempY + 70, 12, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 绘制CPU图标
+            const cpuX = centerX - 120;
+            const cpuY = centerY + 40;
+            const cpuSize = 50;
+            
+            ctx.strokeStyle = '#a855f7';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(cpuX, cpuY, cpuSize, cpuSize);
+            
+            // CPU内部
+            ctx.fillStyle = '#a855f7';
+            ctx.fillRect(cpuX + 10, cpuY + 10, cpuSize - 20, cpuSize - 20);
+            
+            // 添加"Ultra"文字
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 36px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('ULTRA', centerX, centerY + 140);
+            
+            // 添加发光效果
+            ctx.shadowColor = '#007ACC';
+            ctx.shadowBlur = 20;
+            ctx.fillText('ULTRA', centerX, centerY + 140);
+            ctx.shadowBlur = 0;
+            
+            // 绘制装饰性光线
+            ctx.strokeStyle = '#007ACC';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            
+            // 对角线光线
+            ctx.beginPath();
+            ctx.moveTo(50, 50);
+            ctx.lineTo(150, 150);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(462, 50);
+            ctx.lineTo(362, 150);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(50, 462);
+            ctx.lineTo(150, 362);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(462, 462);
+            ctx.lineTo(362, 362);
+            ctx.stroke();
+            
+            ctx.setLineDash([]);
+        }
+        
+        function downloadIcon() {
+            const canvas = document.getElementById('iconCanvas');
+            const link = document.createElement('a');
+            link.download = 'monitor-ultra-icon.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+        
+        function generateVariants() {
+            const sizes = [16, 24, 32, 48, 64, 128, 256, 512];
+            
+            sizes.forEach(size => {
+                const canvas = document.createElement('canvas');
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext('2d');
+                
+                // 缩放绘制
+                ctx.scale(size / 512, size / 512);
+                drawIconOnCanvas(ctx);
+                
+                // 下载
+                const link = document.createElement('a');
+                link.download = `monitor-ultra-icon-${size}x${size}.png`;
+                link.href = canvas.toDataURL();
+                link.click();
+            });
+        }
+        
+        function drawIconOnCanvas(ctx) {
+            // 重复绘制逻辑（简化版）
+            const canvas = { width: 512, height: 512 };
+            
+            // 背景渐变
+            const bgGradient = ctx.createLinearGradient(0, 0, 512, 512);
+            bgGradient.addColorStop(0, '#1a1a2e');
+            bgGradient.addColorStop(0.5, '#16213e');
+            bgGradient.addColorStop(1, '#0f3460');
+            
+            ctx.fillStyle = bgGradient;
+            ctx.fillRect(0, 0, 512, 512);
+            
+            // 简化的图标元素
+            const centerX = 256;
+            const centerY = 256;
+            
+            // 主屏幕
+            ctx.strokeStyle = '#007ACC';
+            ctx.lineWidth = 6;
+            ctx.strokeRect(centerX - 140, centerY - 100, 280, 200);
+            
+            // 监控线条
+            const lines = [
+                { y: centerY - 60, color: '#00ff88', width: 200 },
+                { y: centerY - 30, color: '#0099ff', width: 150 },
+                { y: centerY + 0, color: '#ff6b6b', width: 180 },
+                { y: centerY + 30, color: '#ffd93d', width: 160 },
+                { y: centerY + 60, color: '#a855f7', width: 140 }
+            ];
+            
+            lines.forEach(line => {
+                ctx.strokeStyle = line.color;
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.moveTo(centerX - line.width/2, line.y);
+                ctx.lineTo(centerX + line.width/2, line.y);
+                ctx.stroke();
+            });
+            
+            // 文字
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 36px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('ULTRA', centerX, centerY + 140);
+        }
+        
+        // 页面加载后绘制图标
+        window.onload = drawIcon;
+    </script>
+</body>
+</html>

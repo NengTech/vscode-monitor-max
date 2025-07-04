@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <!-- 定义渐变 -->
+  <defs>
+    <!-- 主背景渐变 -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1a2e;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#16213e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0f3460;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- 屏幕渐变 -->
+    <linearGradient id="screenGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#001122;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#002244;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- 发光效果 -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge> 
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    
+    <!-- 投影效果 -->
+    <filter id="dropshadow">
+      <feDropShadow dx="2" dy="2" stdDeviation="3" flood-color="#000000" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  
+  <!-- 圆角背景 -->
+  <rect width="256" height="256" rx="40" ry="40" fill="url(#bgGradient)"/>
+  
+  <!-- 主监控屏幕 -->
+  <rect x="38" y="78" width="180" height="130" rx="8" ry="8" 
+        fill="url(#screenGradient)" stroke="#007ACC" stroke-width="3" filter="url(#dropshadow)"/>
+  
+  <!-- 屏幕内容 - 监控数据线条 -->
+  <g filter="url(#glow)">
+    <!-- GPU 利用率线 -->
+    <rect x="58" y="98" width="120" height="4" rx="2" fill="#00ff88"/>
+    
+    <!-- 内存使用线 -->
+    <rect x="58" y="113" width="90" height="4" rx="2" fill="#0099ff"/>
+    
+    <!-- CPU 使用线 -->
+    <rect x="58" y="128" width="110" height="4" rx="2" fill="#ff6b6b"/>
+    
+    <!-- 温度线 -->
+    <rect x="58" y="143" width="100" height="4" rx="2" fill="#ffd93d"/>
+    
+    <!-- 网络线 -->
+    <rect x="58" y="158" width="85" height="4" rx="2" fill="#a855f7"/>
+  </g>
+  
+  <!-- 左侧 GPU 芯片图标 -->
+  <g transform="translate(58, 30)">
+    <rect x="0" y="0" width="40" height="40" rx="4" fill="#007ACC" filter="url(#dropshadow)"/>
+    
+    <!-- 芯片网格 -->
+    <g stroke="#ffffff" stroke-width="1.5" opacity="0.8">
+      <line x1="10" y1="0" x2="10" y2="40"/>
+      <line x1="20" y1="0" x2="20" y2="40"/>
+      <line x1="30" y1="0" x2="30" y2="40"/>
+      <line x1="0" y1="10" x2="40" y2="10"/>
+      <line x1="0" y1="20" x2="40" y2="20"/>
+      <line x1="0" y1="30" x2="40" y2="30"/>
+    </g>
+    
+    <!-- 芯片引脚 -->
+    <g fill="#00ff88">
+      <!-- 左侧引脚 -->
+      <rect x="-4" y="5" width="4" height="3"/>
+      <rect x="-4" y="12" width="4" height="3"/>
+      <rect x="-4" y="19" width="4" height="3"/>
+      <rect x="-4" y="26" width="4" height="3"/>
+      <rect x="-4" y="33" width="4" height="3"/>
+      
+      <!-- 右侧引脚 -->
+      <rect x="40" y="5" width="4" height="3"/>
+      <rect x="40" y="12" width="4" height="3"/>
+      <rect x="40" y="19" width="4" height="3"/>
+      <rect x="40" y="26" width="4" height="3"/>
+      <rect x="40" y="33" width="4" height="3"/>
+      
+      <!-- 上侧引脚 -->
+      <rect x="5" y="-4" width="3" height="4"/>
+      <rect x="12" y="-4" width="3" height="4"/>
+      <rect x="19" y="-4" width="3" height="4"/>
+      <rect x="26" y="-4" width="3" height="4"/>
+      <rect x="33" y="-4" width="3" height="4"/>
+      
+      <!-- 下侧引脚 -->
+      <rect x="5" y="40" width="3" height="4"/>
+      <rect x="12" y="40" width="3" height="4"/>
+      <rect x="19" y="40" width="3" height="4"/>
+      <rect x="26" y="40" width="3" height="4"/>
+      <rect x="33" y="40" width="3" height="4"/>
+    </g>
+  </g>
+  
+  <!-- 右侧内存条图标 -->
+  <g transform="translate(158, 35)">
+    <rect x="0" y="0" width="50" height="12" rx="2" fill="#0099ff" filter="url(#dropshadow)"/>
+    
+    <!-- 内存条刻痕 -->
+    <rect x="22" y="-3" width="2" height="6" fill="#001122"/>
+    
+    <!-- 内存条引脚 -->
+    <g fill="#ffd93d">
+      <rect x="2" y="12" width="2" height="4"/>
+      <rect x="7" y="12" width="2" height="4"/>
+      <rect x="12" y="12" width="2" height="4"/>
+      <rect x="17" y="12" width="2" height="4"/>
+      <rect x="22" y="12" width="2" height="4"/>
+      <rect x="27" y="12" width="2" height="4"/>
+      <rect x="32" y="12" width="2" height="4"/>
+      <rect x="37" y="12" width="2" height="4"/>
+      <rect x="42" y="12" width="2" height="4"/>
+      <rect x="47" y="12" width="2" height="4"/>
+    </g>
+  </g>
+  
+  <!-- 温度计图标 -->
+  <g transform="translate(190, 100)">
+    <rect x="0" y="0" width="5" height="40" rx="2" fill="#ff6b6b" filter="url(#glow)"/>
+    <circle cx="2.5" cy="45" r="8" fill="#ff6b6b" filter="url(#glow)"/>
+    
+    <!-- 温度刻度 -->
+    <g stroke="#ff6b6b" stroke-width="1" opacity="0.6">
+      <line x1="5" y1="10" x2="10" y2="10"/>
+      <line x1="5" y1="20" x2="8" y2="20"/>
+      <line x1="5" y1="30" x2="10" y2="30"/>
+    </g>
+  </g>
+  
+  <!-- CPU 图标 -->
+  <g transform="translate(48, 180)">
+    <rect x="0" y="0" width="32" height="32" rx="4" fill="none" stroke="#a855f7" stroke-width="2.5" filter="url(#dropshadow)"/>
+    <rect x="8" y="8" width="16" height="16" rx="2" fill="#a855f7" filter="url(#glow)"/>
+    
+    <!-- CPU 标识 -->
+    <text x="16" y="20" font-family="Arial, sans-serif" font-size="8" font-weight="bold" fill="#ffffff" text-anchor="middle">CPU</text>
+  </g>
+  
+  <!-- ULTRA 文字 -->
+  <g transform="translate(128, 235)">
+    <text x="0" y="0" font-family="Arial, sans-serif" font-size="24" font-weight="bold" 
+          fill="#ffffff" text-anchor="middle" filter="url(#glow)">ULTRA</text>
+  </g>
+  
+  <!-- 装饰性光线 -->
+  <g stroke="#007ACC" stroke-width="2" opacity="0.4" stroke-dasharray="5,5">
+    <line x1="30" y1="30" x2="80" y2="80"/>
+    <line x1="226" y1="30" x2="176" y2="80"/>
+    <line x1="30" y1="226" x2="80" y2="176"/>
+    <line x1="226" y1="226" x2="176" y2="176"/>
+  </g>
+  
+  <!-- 边角发光点 -->
+  <g fill="#007ACC" opacity="0.6">
+    <circle cx="40" cy="40" r="3" filter="url(#glow)"/>
+    <circle cx="216" cy="40" r="3" filter="url(#glow)"/>
+    <circle cx="40" cy="216" r="3" filter="url(#glow)"/>
+    <circle cx="216" cy="216" r="3" filter="url(#glow)"/>
+  </g>
+</svg>
