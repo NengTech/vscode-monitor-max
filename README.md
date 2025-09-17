@@ -1,4 +1,6 @@
-[github-sh# Monitor Ultra
+这是粗略的修改，只是为了同时监控我的两个 4090
+
+---
 
 [English](./README.md) | [简体中文](./README_ZH.md)
 
