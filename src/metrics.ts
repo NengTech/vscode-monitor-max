@@ -51,9 +51,9 @@ const memActiveText = async () => {
   }
 
   if (active.slice(-1) === total.slice(-1)) {
-    return `$(server)${active.slice(0, -1)}/${total}`;
+    return `$(server) ${active.slice(0, -1)} / ${total}`;
   }
-  return `$(server)${active}/${total}`;
+  return `$(server) ${active} / ${total}`;
 };
 
 const memUsedText = async () => {
@@ -133,26 +133,67 @@ const diskSpaceText = async () => {
   const fsSize = await SI.fsSize();
   const disksToShow = getDiskSpaceConfig();
 
-  if (disksToShow.includes('all') && fsSize.length > 0) {
-    // !! 对 fsSize 进行一次过滤，每个 disk 的 total 是 bytes 如果 total < 256 GB 则直接跳过不显示
-    return fsSize.filter(disk => disk.size >= 256 * 1024 * 1024 * 1024).map(disk => {
-      const total = disk.size;
-      const used = disk.used;
-      const usedPercentage = (used / total * 100).toFixed(1);
-      // return `$(database)${disk.mount} ${usedPercentage}% ${pretty(used)}/${pretty(total)}`;
+  const GB = 1024 ** 3;
+  const MIN_DISK_SIZE = 256 * GB;
 
-      return `$(database)${usedPercentage}%`;
-    }).join(' | ');
+  function isRealDisk(d: any) {
+    const t = (d.type || '').toLowerCase();   // ext4/xfs/btrfs/lvm 等
+    const fs = (d.fs || '').toLowerCase();    // /dev/mapper/xxx 或 /dev/nvme0n1p2
+    const m = d.mount || '';
+
+    // 1) 排除伪文件系统类型
+    const EXCLUDE_TYPES = new Set([
+      'tmpfs', 'devtmpfs', 'overlay', 'squashfs', 'ramfs', 'aufs', 'efivarfs',
+      'proc', 'sysfs', 'pstore', 'bpf', 'tracefs', 'cgroup', 'cgroup2',
+      'securityfs', 'configfs', 'fusectl', 'autofs', 'debugfs'
+    ]);
+    if (EXCLUDE_TYPES.has(t)) return false;
+
+    // 2) 排除典型的挂载点前缀（运行区、设备、snap、docker 等）
+    const EXCLUDE_MOUNT_PREFIX = ['/run', '/sys', '/dev', '/proc', '/snap', '/var/lib/docker', '/var/snap'];
+    if (EXCLUDE_MOUNT_PREFIX.some(p => m.startsWith(p))) return false;
+
+    // 3) 要么是块设备路径，要么是常见本地 FS 类型（允许 LVM、ext、xfs、btrfs、zfs）
+    const isBlock = fs.startsWith('/dev/');
+    const looksLocalFs = /ext\d|xfs|btrfs|zfs/.test(t);
+    return isBlock || looksLocalFs;
   }
-  return fsSize
-    .filter(disk => disksToShow.includes(disk.mount)).filter(disk => disk.size >= 256 * 1024 * 1024 * 1024)
-    .map(disk => {
-      const total = disk.size;
-      const used = disk.used;
-      const usedPercentage = (used / total * 100).toFixed(1);
-      // return `$(database)${disk.mount} ${usedPercentage}% ${pretty(used)}/${pretty(total)}`;
-      return `$(database)${usedPercentage}%`;
-    }).join(' | ');
+
+  // 候选：真实磁盘 + 容量≥256GB
+  const candidates = fsSize.filter(d => isRealDisk(d) && d.size >= MIN_DISK_SIZE);
+
+  if (candidates.length === 0) {
+    return 'No disk >= 256GB';
+  }
+
+  // 取最大容量的那块盘/分区
+  const largest = candidates.reduce((a, b) => (b.size > a.size ? b : a));
+  const usedPct = ((largest.used / largest.size) * 100).toFixed(1);
+
+  // 想带挂载点就用：`$(database)${largest.mount} ${usedPct}%`
+  return `$(database)${usedPct}%`;
+
+
+  // if (disksToShow.includes('all') && fsSize.length > 0) {
+  //   // !! 对 fsSize 进行一次过滤，每个 disk 的 total 是 bytes 如果 total < 256 GB 则直接跳过不显示
+  //   return fsSize.filter(disk => disk.size >= 256 * 1024 * 1024 * 1024).map(disk => {
+  //     const total = disk.size;
+  //     const used = disk.used;
+  //     const usedPercentage = (used / total * 100).toFixed(1);
+  //     // return `$(database)${disk.mount} ${usedPercentage}% ${pretty(used)}/${pretty(total)}`;
+
+  //     return `$(database)${usedPercentage}%`;
+  //   }).join(' | ');
+  // }
+  // return fsSize
+  //   .filter(disk => disksToShow.includes(disk.mount)).filter(disk => disk.size >= 256 * 1024 * 1024 * 1024)
+  //   .map(disk => {
+  //     const total = disk.size;
+  //     const used = disk.used;
+  //     const usedPercentage = (used / total * 100).toFixed(1);
+  //     // return `$(database)${disk.mount} ${usedPercentage}% ${pretty(used)}/${pretty(total)}`;
+  //     return `$(database)${usedPercentage}%`;
+  //   }).join(' | ');
 };
 
 const uptimeText = async () => {
