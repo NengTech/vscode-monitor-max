@@ -1,4 +1,38 @@
-这是粗略的修改，只是为了同时监控我的两个 4090
+这是粗略的修改，只是为了同时监控我的两个 4090，可以看 commit 看看哪里修改了，只支持本地部署
+
+- 修改更新频率
+- 固定小数长度不让它乱动
+- 存储器只显示大容量分区
+- 添加双 GPU 支持，只显示显存占用，需要把插件配置 `gpu_index` 改为 1
+
+双卡
+
+![image-20250918115530822](./assets/image-20250918115530822.png)
+
+单卡
+
+![image-20250918115601071](./assets/image-20250918115601071.png)
+
+```bash
+# 安装/加载 nvm（若已装可跳过）
+# curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+# source ~/.bashrc  或  source ~/.zshrc
+
+nvm install --lts    # 会装当前 LTS（Node 20.x）
+nvm use --lts
+node -v              # 确认是 v20.x
+
+npm i -D @vscode/vsce
+# 或者全局： npm i -g @vscode/vsce
+
+npm run compile
+npm ci
+npx vsce package
+
+code --install-extension monitor-max-1.0.0.vsix
+# code --install-extension monitor-max-1.0.0.vsix --force
+```
+
 
 ---
 
@@ -9,19 +43,21 @@ Monitor Ultra is an advanced system monitoring extension for Visual Studio Code,
 ## 🚀 What's New in Monitor Ultra
 
 ### Enhanced GPU Monitoring
+
 - **Ubuntu Optimization**: Special optimizations for Ubuntu Linux systems
 - **NVIDIA GPU Support**: Complete monitoring of GPU utilization, memory, and temperature
 - **Smart Error Handling**: Intelligent error detection and graceful fallbacks
 - **Performance Caching**: Reduced system calls with intelligent caching mechanisms
 
 ### Improved User Experience
+
 - **Auto-Detection**: Automatically detect and configure GPU monitoring
 - **Flexible Configuration**: Granular control over monitoring features
 - **Multi-Language Support**: Enhanced localization for Chinese, Japanese, and English
 - **Comprehensive Documentation**: Detailed setup guides for Ubuntu users//img.shields.io/github/stars/nexmoe/vscode-monitor-pro?style=social
-[github-url]: https://github.com/nexmoe/vscode-monitor-ultra
-[vscode-shield]: https://img.shields.io/visual-studio-marketplace/r/nexmoe.monitor-ultra?logo=visual-studio-code&style=social
-[vscode-url]: https://marketplace.visualstudio.com/items?itemName=nexmoe.monitor-ultra
+  [github-url]: https://github.com/nexmoe/vscode-monitor-ultra
+  [vscode-shield]: https://img.shields.io/visual-studio-marketplace/r/nexmoe.monitor-ultra?logo=visual-studio-code&style=social
+  [vscode-url]: https://marketplace.visualstudio.com/items?itemName=nexmoe.monitor-ultra
 
 [![Github Repo][github-shield]][github-url]
 [![VSCode Plugin][vscode-shield]][vscode-url]
@@ -41,23 +77,23 @@ Monitor Ultra is a comprehensive resource monitoring tool designed to help you t
 ## Features
 
 - [ ] **Resources Monitor**
-  - [x] **CPU Usage**: Monitor the percentage of CPU utilization to understand how much processing power is being utilized by your system.
-  - [x] **CPU Frequency**: Keep track of the current CPU frequency to understand how your system is dynamically adjusting its processing power.
-  - [x] **CPU Temperature**: Monitor the temperature if it can.
-  - [x] **Memory Usage**: Keep an eye on the memory consumption of your computer.
-  - [x] **Network Usage**: Track the network activity on your machine, including incoming and outgoing data transfer rates.
-  - [x] **File-system Usage** (Linux, macOS): Provides the read/write rate of the disk
-  - [x] **Battery Percentage and Charging Status**: If you're using a laptop or a portable device, this feature allows you to monitor the battery level and charging status.
-  - [x] **OS Distro**
-  - [x] **Disk Usage**
-  - [x] **Uptime**
-- [x] **Order**: Customize the order in which the monitored resources are displayed to you, making it convenient to monitor them at a glance.
-- [x] **Refresh Interval**: Set the refresh interval for updating the resource metrics.
-- [x] **No Layout Shift**: Ensures that the position and size of elements in the StatusBar do not unexpectedly change.
-- [x] **Remote SSH Resources Monitor**: You can keep track of important system metrics on a remote SSH-connected device.
+  - [X] **CPU Usage**: Monitor the percentage of CPU utilization to understand how much processing power is being utilized by your system.
+  - [X] **CPU Frequency**: Keep track of the current CPU frequency to understand how your system is dynamically adjusting its processing power.
+  - [X] **CPU Temperature**: Monitor the temperature if it can.
+  - [X] **Memory Usage**: Keep an eye on the memory consumption of your computer.
+  - [X] **Network Usage**: Track the network activity on your machine, including incoming and outgoing data transfer rates.
+  - [X] **File-system Usage** (Linux, macOS): Provides the read/write rate of the disk
+  - [X] **Battery Percentage and Charging Status**: If you're using a laptop or a portable device, this feature allows you to monitor the battery level and charging status.
+  - [X] **OS Distro**
+  - [X] **Disk Usage**
+  - [X] **Uptime**
+- [X] **Order**: Customize the order in which the monitored resources are displayed to you, making it convenient to monitor them at a glance.
+- [X] **Refresh Interval**: Set the refresh interval for updating the resource metrics.
+- [X] **No Layout Shift**: Ensures that the position and size of elements in the StatusBar do not unexpectedly change.
+- [X] **Remote SSH Resources Monitor**: You can keep track of important system metrics on a remote SSH-connected device.
 - [ ] **High Occupancy Alert**: Receive alerts when any of the monitored resources reach a high occupancy level.
 - [ ] **Dashboard**: I want to display information all you care about in a page with abundant charts.
-- [x] **Multiple Languages**: English、简体中文、繁體中文、日本語
+- [X] **Multiple Languages**: English、简体中文、繁體中文、日本語
 
 ## Vision
 
@@ -70,10 +106,11 @@ Furthermore, in the future, I also intend to integrate chart designs to make the
 [Document](./CONTRIBUTING.md)
 
 ## Inspired by
-- <https://github.com/nexmoe/vscode-monitor-pro>(Modified from this project)
-- <https://github.com/chneau/vscode-resource-monitor>
-- <https://github.com/Njanderson/resmon>
-  
+
+- [https://github.com/nexmoe/vscode-monitor-pro](https://github.com/nexmoe/vscode-monitor-pro)(Modified from this project)
+- [https://github.com/chneau/vscode-resource-monitor](https://github.com/chneau/vscode-resource-monitor)
+- [https://github.com/Njanderson/resmon](https://github.com/Njanderson/resmon)
+
 ## Why develop this plugin?
 
 To provide a comprehensive resource monitoring tool for better management and monitoring of server status while using VS Code's Remote SSH.
@@ -82,7 +119,7 @@ To provide a comprehensive resource monitoring tool for better management and mo
 
 I highly value user feedback and opinions, as they are crucial for me to improve and enhance the product. If you have any suggestions or encounter any bugs, please feel free to provide feedback:
 
-<https://github.com/nexmoe/vscode-monitor-ultra/issues>
+[https://github.com/nexmoe/vscode-monitor-ultra/issues](https://github.com/nexmoe/vscode-monitor-ultra/issues)
 
 ## Support Me
 
