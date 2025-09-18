@@ -27,10 +27,14 @@ const pretty = (bytes: number, option: any = {}): string => {
 
 const cpuText = async () => {
   const cl = await SI.currentLoad();
-  return `$(pulse)${cl.currentLoad.toLocaleString(undefined, {
-    maximumSignificantDigits: 3,
-    minimumSignificantDigits: 3,
-  })}%`;
+  // return `$(pulse)${cl.currentLoad.toLocaleString(undefined, {
+  //   maximumSignificantDigits: 3,
+  //   minimumSignificantDigits: 3,
+  // })}%`;
+  const value = cl.currentLoad.toFixed(2); // e.g. "3.21"
+  // !! 如果整数部分不足两位，前面补数字等宽空格（Figure Space） \u2007
+  const padded = value.padStart(5, "\u2007");   // "3.21" -> "03.21"
+  return `$(pulse)${padded}%`;
 };
 
 const memActiveText = async () => {
@@ -83,7 +87,7 @@ const netText = async () => {
   const ns = await SI.networkStats();
   return `$(cloud-download)${pretty(
     ns?.[0]?.rx_sec ?? 0
-  )}/s $(cloud-upload)${pretty(ns?.[0]?.tx_sec ?? 0)}/s`;
+  )}/s  $(cloud-upload)${pretty(ns?.[0]?.tx_sec ?? 0)}/s`;
 };
 
 /**
@@ -96,7 +100,7 @@ const fsText = async () => {
   const fs = await SI.fsStats();
 
   // Formats and returns the read and write rate information
-  return `$(log-in)${pretty(fs.wx_sec ?? 0)}/s $(log-out)${pretty(
+  return `$(log-in)${pretty(fs.wx_sec ?? 0)}/s  $(log-out)${pretty(
     fs.rx_sec ?? 0
   )}/s`;
 };
@@ -307,11 +311,12 @@ const gpuUtilizationText = async () => {
     const gpuIndex = getGpuConfig();
     const values = utilization.split('\n').filter(v => v.trim() !== '');
     if (values[1]) {
-      const targetValue = values[0];
-      const targetValue2 = values[1];
+      // !! 补空格防止跳动，前面补数字等宽空格（Figure Space） \u2007
+      const targetValue = values[0].padStart(2, "\u2007");
+      const targetValue2 = values[1].padStart(2, "\u2007");
       return `$(chip)[ ${targetValue}% ][ ${targetValue2}% ]`;
     } else if (values[0]) {
-      const targetValue = values[0];
+      const targetValue = values[0].padStart(2, "\u2007");
       return `$(chip)${targetValue}%`;
     } else {
       return "error";
