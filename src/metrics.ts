@@ -2,7 +2,7 @@ import * as SI from "systeminformation";
 import { exec } from "child_process";
 import byteFormat from "./byteFormat";
 import { MetricCtrProps } from "./constants";
-import { getDiskSpaceConfig, getGpuConfig } from "./configuration";
+import { getDiskSpaceConfig } from "./configuration";
 
 /**
  * Converts a byte value into a nicely formatted string.
@@ -208,196 +208,121 @@ const uptimeText = async () => {
   return `$(clock) ${days}d ${hours}h ${minutes}m`;
 };
 
-// GPU数据缓存机制，避免频繁调用nvidia-smi
-let gpuDataCache: { [key: string]: { data: string, timestamp: number } } = {};
-const CACHE_DURATION = 250; // 0.25秒缓存
+// 统一 GPU 数据：单次 nvidia-smi 调用获取所有字段
+interface GpuSnapshot {
+  utilization: string[];
+  memoryUsed: string[];
+  memoryTotal: string[];
+  temperature: string[];
+  timestamp: number;
+}
 
-/**
- * 检测当前系统是否为Ubuntu，并检查NVIDIA驱动状态
- */
-const checkUbuntuGpuSupport = async (): Promise<boolean> => {
-  return new Promise(async (resolve) => {
-    // 检查是否为Linux系统
-    const os = await SI.osInfo();
-    if (os.platform !== 'linux') {
-      resolve(false);
-      return;
-    }
+let gpuSnapshot: GpuSnapshot | null = null;
+const CACHE_DURATION = 250;
 
-    // 检查nvidia-smi是否可用
-    exec('which nvidia-smi', (error: any) => {
-      if (error) {
-        resolve(false);
-        return;
-      }
+const ALL_GPU_FIELDS = 'utilization.gpu,memory.used,memory.total,temperature.gpu';
 
-      // 检查nvidia-smi是否能正常执行
-      exec('nvidia-smi -L', { timeout: 3000 }, (error: any, stdout: string) => {
-        resolve(!error && stdout.includes('GPU'));
-      });
-    });
-  });
-};
-
-/**
- * 获取可用GPU列表 (Ubuntu优化)
- */
-const getAvailableGpus = async (): Promise<number> => {
-  return new Promise((resolve) => {
-    exec('nvidia-smi -L', { timeout: 3000 }, (error: any, stdout: string) => {
-      if (error) {
-        resolve(0);
-        return;
-      }
-      const gpuCount = (stdout.match(/GPU \d+:/g) || []).length;
-      resolve(gpuCount);
-    });
-  });
-};
-
-/**
- * 执行 nvidia-smi 命令获取 GPU 信息 (Ubuntu优化版本)
- */
-const executeNvidiaSmi = async (query: string): Promise<string> => {
-  return new Promise((resolve) => {
-    const command = `nvidia-smi --query-gpu=${query} --format=csv,noheader,nounits`;
-
-    exec(command, { timeout: 3000 }, (error: any, stdout: string, stderr: string) => {
-      if (error) {
-        // Ubuntu特定错误处理
-        if (error.code === 'ENOENT') {
-          // console.debug('nvidia-smi command not found. NVIDIA drivers may not be installed.');
-        } else if (error.code === 127) {
-          // console.debug('nvidia-smi not in PATH. Please ensure NVIDIA drivers are properly installed.');
-        } else if (stderr && stderr.includes('permission')) {
-          // console.debug('Permission denied accessing GPU. Try running VS Code with appropriate permissions.');
-        } else {
-          // console.debug(`GPU monitoring error: ${error.message}`);
-        }
-        resolve('');
-        return;
-      }
-      resolve(stdout.trim());
-    });
-  });
-};
-
-/**
- * 带缓存的nvidia-smi执行函数
- */
-const executeNvidiaSmiCached = async (query: string): Promise<string> => {
+const refreshGpuSnapshot = async (): Promise<GpuSnapshot> => {
   const now = Date.now();
-  const cacheKey = query;
-
-  if (gpuDataCache[cacheKey] && (now - gpuDataCache[cacheKey].timestamp) < CACHE_DURATION) {
-    return gpuDataCache[cacheKey].data;
+  if (gpuSnapshot && (now - gpuSnapshot.timestamp) < CACHE_DURATION) {
+    return gpuSnapshot;
   }
 
-  const result = await executeNvidiaSmi(query);
-  gpuDataCache[cacheKey] = { data: result, timestamp: now };
+  const result = await new Promise<string>((resolve) => {
+    exec(
+      `nvidia-smi --query-gpu=${ALL_GPU_FIELDS} --format=csv,noheader,nounits`,
+      { timeout: 3000 },
+      (error: any, stdout: string) => {
+        if (error) {
+          resolve('');
+          return;
+        }
+        resolve(stdout.trim());
+      }
+    );
+  });
 
-  return result;
+  if (!result) {
+    gpuSnapshot = { utilization: [], memoryUsed: [], memoryTotal: [], temperature: [], timestamp: now };
+    return gpuSnapshot;
+  }
+
+  const utilization: string[] = [];
+  const memoryUsed: string[] = [];
+  const memoryTotal: string[] = [];
+  const temperature: string[] = [];
+
+  for (const line of result.split('\n')) {
+    const parts = line.split(',').map(s => s.trim());
+    if (parts.length >= 4) {
+      utilization.push(parts[0]);
+      memoryUsed.push(parts[1]);
+      memoryTotal.push(parts[2]);
+      temperature.push(parts[3]);
+    }
+  }
+
+  gpuSnapshot = { utilization, memoryUsed, memoryTotal, temperature, timestamp: now };
+  return gpuSnapshot;
 };
 
-/**
- * GPU 利用率监控 (Ubuntu优化版本)
- */
 const gpuUtilizationText = async () => {
   try {
-    // 使用缓存版本的nvidia-smi调用
-    const utilization = await executeNvidiaSmiCached('utilization.gpu');
-    if (!utilization) return '';
+    const snap = await refreshGpuSnapshot();
+    const values = snap.utilization;
+    if (values.length === 0) return '';
 
-    const gpuIndex = getGpuConfig();
-    const values = utilization.split('\n').filter(v => v.trim() !== '');
     if (values[1]) {
-      // !! 补空格防止跳动，前面补数字等宽空格（Figure Space） \u2007
-      const targetValue = values[0].padStart(2, "\u2007");
-      const targetValue2 = values[1].padStart(2, "\u2007");
-      return `$(chip)[ ${targetValue}% ][ ${targetValue2}% ]`;
-    } else if (values[0]) {
-      const targetValue = values[0].padStart(2, "\u2007");
-      return `$(chip)${targetValue}%`;
+      const v0 = values[0].padStart(2, ' ');
+      const v1 = values[1].padStart(2, ' ');
+      return `$(chip)[ ${v0}% ][ ${v1}% ]`;
     } else {
-      return "error";
+      const v0 = values[0].padStart(2, ' ');
+      return `$(chip)${v0}%`;
     }
-
-
   } catch (error) {
     return '';
   }
 };
 
-/**
- * GPU 内存使用监控 (Ubuntu优化版本)
- */
 const gpuMemoryText = async () => {
   try {
-    // 使用缓存版本的nvidia-smi调用
-    const memoryUsed = await executeNvidiaSmiCached('memory.used');
-    const memoryTotal = await executeNvidiaSmiCached('memory.total');
-
-    if (!memoryUsed || !memoryTotal) return '';
-
-    const gpuIndex = getGpuConfig();
-    const usedValues = memoryUsed.split('\n').filter(v => v.trim() !== '');
-    const totalValues = memoryTotal.split('\n').filter(v => v.trim() !== '');
+    const snap = await refreshGpuSnapshot();
+    const usedValues = snap.memoryUsed;
+    const totalValues = snap.memoryTotal;
+    if (usedValues.length === 0) return '';
 
     if (usedValues[1]) {
-      // !! 只显示显存占用
       const used1 = parseInt(usedValues[0]);
-      // const total1 = parseInt(totalValues[0] || totalValues[0]);
       const used2 = parseInt(usedValues[1]);
-      // const total2 = parseInt(totalValues[1] || totalValues[0]);
-
       const usedFormatted1 = pretty(used1 * 1024 * 1024);
-      // const totalFormatted1 = pretty(total1 * 1024 * 1024);
       const usedFormatted2 = pretty(used2 * 1024 * 1024);
-      // const totalFormatted2 = pretty(total2 * 1024 * 1024);
-
       return `$(repo)[ ${usedFormatted1} ][ ${usedFormatted2} ]`;
-
-      // return `$(repo)[ ${usedFormatted1} / ${totalFormatted1} ][ ${usedFormatted2} / ${totalFormatted2} ]`;
     } else if (usedValues[0]) {
       const used = parseInt(usedValues[0]);
       const total = parseInt(totalValues[0]);
-
-      const usedFormatted = pretty(used * 1024 * 1024); // 转换为字节
+      const usedFormatted = pretty(used * 1024 * 1024);
       const totalFormatted = pretty(total * 1024 * 1024);
-
       return `$(repo)${usedFormatted} / ${totalFormatted}`;
     } else {
-      return "error";
+      return 'error';
     }
-
   } catch (error) {
     return '';
   }
 };
 
-/**
- * GPU 温度监控 (Ubuntu优化版本)
- */
 const gpuTemperatureText = async () => {
   try {
-    // 使用缓存版本的nvidia-smi调用
-    const temperature = await executeNvidiaSmiCached('temperature.gpu');
-    if (!temperature) return '';
+    const snap = await refreshGpuSnapshot();
+    const values = snap.temperature;
+    if (values.length === 0) return '';
 
-    const gpuIndex = getGpuConfig();
-    const values = temperature.split('\n').filter(v => v.trim() !== '');
     if (values[1]) {
-      const targetValue = values[0];
-      const targetValue2 = values[1];
-      return `$(flame)[ ${targetValue}°C ][ ${targetValue2}°C ]`;
-    } else if (values[0]) {
-      const targetValue = values[0];
-      return `$(flame)${targetValue}°C`;
+      return `$(flame)[ ${values[0]}°C ][ ${values[1]}°C ]`;
     } else {
-      return "error";
+      return `$(flame)${values[0]}°C`;
     }
-
-
   } catch (error) {
     return '';
   }
