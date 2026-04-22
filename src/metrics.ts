@@ -1,5 +1,5 @@
 import * as SI from "systeminformation";
-import { exec } from "child_process";
+import { exec, spawn, ChildProcess } from "child_process";
 import byteFormat from "./byteFormat";
 import { MetricCtrProps } from "./constants";
 import { getDiskSpaceConfig } from "./configuration";
@@ -208,51 +208,28 @@ const uptimeText = async () => {
   return `$(clock) ${days}d ${hours}h ${minutes}m`;
 };
 
-// 统一 GPU 数据：单次 nvidia-smi 调用获取所有字段
+// 常驻 nvidia-smi 进程，持续输出 GPU 数据
 interface GpuSnapshot {
   utilization: string[];
   memoryUsed: string[];
   memoryTotal: string[];
   temperature: string[];
-  timestamp: number;
 }
 
-let gpuSnapshot: GpuSnapshot | null = null;
-const CACHE_DURATION = 250;
-
 const ALL_GPU_FIELDS = 'utilization.gpu,memory.used,memory.total,temperature.gpu';
+const GPU_LOOP_MS = 500;
 
-const refreshGpuSnapshot = async (): Promise<GpuSnapshot> => {
-  const now = Date.now();
-  if (gpuSnapshot && (now - gpuSnapshot.timestamp) < CACHE_DURATION) {
-    return gpuSnapshot;
-  }
+let gpuSnapshot: GpuSnapshot = { utilization: [], memoryUsed: [], memoryTotal: [], temperature: [] };
+let nvidiaSmiProcess: ChildProcess | null = null;
+let gpuDaemonStarted = false;
 
-  const result = await new Promise<string>((resolve) => {
-    exec(
-      `nvidia-smi --query-gpu=${ALL_GPU_FIELDS} --format=csv,noheader,nounits`,
-      { timeout: 3000 },
-      (error: any, stdout: string) => {
-        if (error) {
-          resolve('');
-          return;
-        }
-        resolve(stdout.trim());
-      }
-    );
-  });
-
-  if (!result) {
-    gpuSnapshot = { utilization: [], memoryUsed: [], memoryTotal: [], temperature: [], timestamp: now };
-    return gpuSnapshot;
-  }
-
+function parseGpuOutput(block: string): GpuSnapshot {
   const utilization: string[] = [];
   const memoryUsed: string[] = [];
   const memoryTotal: string[] = [];
   const temperature: string[] = [];
 
-  for (const line of result.split('\n')) {
+  for (const line of block.split('\n')) {
     const parts = line.split(',').map(s => s.trim());
     if (parts.length >= 4) {
       utilization.push(parts[0]);
@@ -261,14 +238,60 @@ const refreshGpuSnapshot = async (): Promise<GpuSnapshot> => {
       temperature.push(parts[3]);
     }
   }
+  return { utilization, memoryUsed, memoryTotal, temperature };
+}
 
-  gpuSnapshot = { utilization, memoryUsed, memoryTotal, temperature, timestamp: now };
+function startGpuDaemon() {
+  if (gpuDaemonStarted) return;
+  gpuDaemonStarted = true;
+
+  const proc = spawn('nvidia-smi', [
+    `--query-gpu=${ALL_GPU_FIELDS}`,
+    '--format=csv,noheader,nounits',
+    `--loop-ms=${GPU_LOOP_MS}`,
+  ], { stdio: ['ignore', 'pipe', 'ignore'] });
+
+  nvidiaSmiProcess = proc;
+
+  let buffer = '';
+  proc.stdout!.on('data', (chunk: Buffer) => {
+    buffer += chunk.toString();
+    const lines = buffer.split('\n');
+    buffer = lines.pop()!;
+
+    const block = lines.filter(l => l.trim()).join('\n');
+    if (block) {
+      gpuSnapshot = parseGpuOutput(block);
+    }
+  });
+
+  proc.on('error', () => {
+    nvidiaSmiProcess = null;
+    gpuDaemonStarted = false;
+  });
+
+  proc.on('exit', () => {
+    nvidiaSmiProcess = null;
+    gpuDaemonStarted = false;
+  });
+}
+
+export function stopGpuDaemon() {
+  if (nvidiaSmiProcess) {
+    nvidiaSmiProcess.kill();
+    nvidiaSmiProcess = null;
+  }
+  gpuDaemonStarted = false;
+}
+
+function getGpuSnapshot(): GpuSnapshot {
+  startGpuDaemon();
   return gpuSnapshot;
-};
+}
 
 const gpuUtilizationText = async () => {
   try {
-    const snap = await refreshGpuSnapshot();
+    const snap = getGpuSnapshot();
     const values = snap.utilization;
     if (values.length === 0) return '';
 
@@ -287,7 +310,7 @@ const gpuUtilizationText = async () => {
 
 const gpuMemoryText = async () => {
   try {
-    const snap = await refreshGpuSnapshot();
+    const snap = getGpuSnapshot();
     const usedValues = snap.memoryUsed;
     const totalValues = snap.memoryTotal;
     if (usedValues.length === 0) return '';
@@ -314,7 +337,7 @@ const gpuMemoryText = async () => {
 
 const gpuTemperatureText = async () => {
   try {
-    const snap = await refreshGpuSnapshot();
+    const snap = getGpuSnapshot();
     const values = snap.temperature;
     if (values.length === 0) return '';
 

@@ -4,6 +4,7 @@ import { workspace, ExtensionContext } from "vscode";
 import { powerShellRelease, powerShellStart } from "systeminformation";
 import { getRefreshInterval } from "./configuration";
 import { Metric, getEnabledMetrics } from "./metricsInit";
+import { stopGpuDaemon } from "./metrics";
 import I18n from "./i18n";
 
 let intervalIds: NodeJS.Timeout;
@@ -31,5 +32,6 @@ export const deactivate = () => {
 		powerShellRelease();
 	}
 	clearInterval(intervalIds);
+	stopGpuDaemon();
 	metrics.forEach((x) => x.dispose());
 };
