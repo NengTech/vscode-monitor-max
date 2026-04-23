@@ -222,14 +222,15 @@ const GPU_LOOP_MS = 500;
 let gpuSnapshot: GpuSnapshot = { utilization: [], memoryUsed: [], memoryTotal: [], temperature: [] };
 let nvidiaSmiProcess: ChildProcess | null = null;
 let gpuDaemonStarted = false;
+let gpuCount = 0;
 
-function parseGpuOutput(block: string): GpuSnapshot {
+function parseGpuLines(lines: string[]): GpuSnapshot {
   const utilization: string[] = [];
   const memoryUsed: string[] = [];
   const memoryTotal: string[] = [];
   const temperature: string[] = [];
 
-  for (const line of block.split('\n')) {
+  for (const line of lines) {
     const parts = line.split(',').map(s => s.trim());
     if (parts.length >= 4) {
       utilization.push(parts[0]);
@@ -245,34 +246,54 @@ function startGpuDaemon() {
   if (gpuDaemonStarted) return;
   gpuDaemonStarted = true;
 
-  const proc = spawn('nvidia-smi', [
-    `--query-gpu=${ALL_GPU_FIELDS}`,
-    '--format=csv,noheader,nounits',
-    `--loop-ms=${GPU_LOOP_MS}`,
-  ], { stdio: ['ignore', 'pipe', 'ignore'] });
-
-  nvidiaSmiProcess = proc;
-
-  let buffer = '';
-  proc.stdout!.on('data', (chunk: Buffer) => {
-    buffer += chunk.toString();
-    const lines = buffer.split('\n');
-    buffer = lines.pop()!;
-
-    const block = lines.filter(l => l.trim()).join('\n');
-    if (block) {
-      gpuSnapshot = parseGpuOutput(block);
+  exec('nvidia-smi -L', { timeout: 3000 }, (error, stdout) => {
+    if (error) {
+      gpuDaemonStarted = false;
+      return;
     }
-  });
+    gpuCount = (stdout.match(/GPU \d+:/g) || []).length;
+    if (gpuCount === 0) {
+      gpuDaemonStarted = false;
+      return;
+    }
 
-  proc.on('error', () => {
-    nvidiaSmiProcess = null;
-    gpuDaemonStarted = false;
-  });
+    const proc = spawn('nvidia-smi', [
+      `--query-gpu=${ALL_GPU_FIELDS}`,
+      '--format=csv,noheader,nounits',
+      `--loop-ms=${GPU_LOOP_MS}`,
+    ], { stdio: ['ignore', 'pipe', 'ignore'] });
 
-  proc.on('exit', () => {
-    nvidiaSmiProcess = null;
-    gpuDaemonStarted = false;
+    nvidiaSmiProcess = proc;
+
+    let buffer = '';
+    let pendingLines: string[] = [];
+
+    proc.stdout!.on('data', (chunk: Buffer) => {
+      buffer += chunk.toString();
+      const parts = buffer.split('\n');
+      buffer = parts.pop()!;
+
+      for (const line of parts) {
+        if (line.trim()) {
+          pendingLines.push(line);
+        }
+      }
+
+      while (pendingLines.length >= gpuCount) {
+        const batch = pendingLines.splice(0, gpuCount);
+        gpuSnapshot = parseGpuLines(batch);
+      }
+    });
+
+    proc.on('error', () => {
+      nvidiaSmiProcess = null;
+      gpuDaemonStarted = false;
+    });
+
+    proc.on('exit', () => {
+      nvidiaSmiProcess = null;
+      gpuDaemonStarted = false;
+    });
   });
 }
 
